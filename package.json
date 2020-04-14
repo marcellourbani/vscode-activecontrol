@@ -63,6 +63,7 @@
   },
   "dependencies": {
     "fast-xml-parser": "^3.16.0",
+    "got": "^10.7.0",
     "http-proxy": "^1.18.0",
     "open": "^7.0.3"
   }
