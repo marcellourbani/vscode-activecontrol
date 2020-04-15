@@ -3,36 +3,10 @@ import { parse } from "fast-xml-parser"
 import { Uri, EventEmitter, workspace } from "vscode"
 import { ServerResponse } from "http"
 import { config } from "./config"
+import { parseForm } from "./transportForm"
 const formCreated = new EventEmitter<string>()
 function isString(x: any): x is string {
   return typeof x === "string"
-}
-const parseForm = (xml: string) => {
-  const raw = parse(xml)?.["asx:abap"]?.["asx:values"]?.TRANSPORT
-  const { TRKORR, BTI_ERROR_MSG } = raw
-  const {
-    BTIEM_MSGTYP,
-    BTIEM_TITLE,
-    BTIEM_MESSAGE,
-    BTIEM_OVERRIDES,
-    BTIEM_EXCEPTION,
-    BTIEM_GUID,
-    BTIEM_IN_PROGRESS,
-  } = BTI_ERROR_MSG
-
-  if (TRKORR || BTIEM_MSGTYP)
-    return {
-      TRKORR,
-      BTI_ERROR_MSG: {
-        BTIEM_MSGTYP,
-        BTIEM_TITLE,
-        BTIEM_MESSAGE,
-        BTIEM_OVERRIDES,
-        BTIEM_EXCEPTION,
-        BTIEM_GUID,
-        BTIEM_IN_PROGRESS,
-      },
-    }
 }
 
 const urlAction = (url: string) => {

@@ -13,6 +13,9 @@
     "onFileSystem:adt"
   ],
   "main": "./out/extension.js",
+  "extensionDependencies": [
+    "murbani.vscode-abap-remote-fs"
+  ],
   "contributes": {
     "commands": [
       {
@@ -30,11 +33,15 @@
           "description": "ActiveControl domain controller main URL"
         },
         "activecontrol.port": {
-          "title": "proxy port",
+          "title": "local server",
           "type": "integer",
-          "description": "Local proxy port",
+          "description": "Port of the local server used to detect form creation",
           "minimum": 1024,
           "maximum": 65535
+        },
+        "activecontrol.user": {
+          "title": "Urer ID",
+          "type": "string"
         }
       }
     }
@@ -63,6 +70,7 @@
   },
   "dependencies": {
     "fast-xml-parser": "^3.16.0",
+    "fp-ts": "^2.5.3",
     "got": "^10.7.0",
     "http-proxy": "^1.18.0",
     "open": "^7.0.3"
