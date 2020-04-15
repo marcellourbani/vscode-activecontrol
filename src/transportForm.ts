@@ -1,5 +1,5 @@
 import { getServer, onFormCreated } from "./proxy"
-import { window, ProgressLocation } from "vscode"
+import { window, ProgressLocation, CancellationToken } from "vscode"
 import { none, some, isNone } from "fp-ts/lib/Option"
 import * as opn from "open"
 import got from "got"
@@ -7,7 +7,7 @@ import { config } from "./config"
 import { PasswordVault } from "./externalmodules"
 import { parse } from "fast-xml-parser"
 
-async function createTF(transport: string) {
+async function createTF(transport: string, extToken?: CancellationToken) {
   const server = getServer()
   if (!server) return true
   const { port } = config()
@@ -18,16 +18,25 @@ async function createTF(transport: string) {
       cancellable: true,
       title: `Creating transport form for ${transport}`
     },
-    progress =>
+    (progress, intToken) =>
       new Promise<boolean>(async resolve => {
-        const sub = onFormCreated(form => {
-          if (form === transport) resolve(true)
-          else resolve(false)
-          sub.dispose()
-        })
-        await opn(
-          `http://localhost:${port}/sap/bc/bsp/bti/te_bsp_new/main.html#transportform/create/trkorr=${transport}`
-        )
+        if (extToken?.isCancellationRequested) resolve(false)
+        else {
+          const sub = onFormCreated(form => {
+            if (form === transport) resolve(true)
+            else resolve(false)
+            sub.dispose()
+          })
+          const onCancel = () => {
+            resolve(false)
+            sub.dispose()
+          }
+          if (extToken) extToken.onCancellationRequested(onCancel)
+          if (intToken) intToken.onCancellationRequested(onCancel)
+          await opn(
+            `http://localhost:${port}/sap/bc/bsp/bti/te_bsp_new/main.html#transportform/create/trkorr=${transport}`
+          )
+        }
       })
   )
 }
@@ -89,15 +98,21 @@ export async function createFormCmd() {
   if (transport) return createTF(transport.toUpperCase())
 }
 
-export async function createFormIfMissing(transport: string) {
+export async function createFormIfMissing(
+  transport: string,
+  _: string,
+  __: string,
+  ___: string,
+  token?: CancellationToken
+) {
   const { user } = config()
   const pasopt = user && (await getPassword(user))
-  if (!pasopt || isNone(pasopt)) return true // TODO: ask user
+  if (!pasopt || isNone(pasopt)) return true
   const { password, isNew } = pasopt.value
   const hasTf = await checkTransportForm(transport, user, password)
   await storepass(user, password, isNew)
   if (hasTf) return true
-  return createTF(transport)
+  return createTF(transport, token)
 }
 
 export const parseForm = (xml: string) => {
