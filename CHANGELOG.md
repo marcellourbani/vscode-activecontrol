@@ -5,6 +5,7 @@
 ### Added
 
 - Cancellation token support
+- webpack
 
 ## [0.0.1] 2020-04-15
 
