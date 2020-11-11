@@ -98,6 +98,11 @@ export async function createFormCmd() {
   if (transport) return createTF(transport.toUpperCase())
 }
 
+function transportNeedsForm(transport: string, filters: RegExp[]) {
+  return filters.length === 0 || !!filters.find(f => transport.toUpperCase().match(f))
+
+}
+
 export async function createFormIfMissing(
   transport: string,
   _: string,
@@ -105,7 +110,8 @@ export async function createFormIfMissing(
   ___: string,
   token?: CancellationToken
 ) {
-  const { user } = config()
+  const { user, filters } = config()
+  if (!transportNeedsForm(transport, filters)) return true
   const pasopt = user && (await getPassword(user))
   if (!pasopt || isNone(pasopt)) return true
   const { password, isNew } = pasopt.value

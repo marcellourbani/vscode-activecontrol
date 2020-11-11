@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.0.3] 2020-11-11
+
+### Added
+
+- filter by transport number
+
 ## [0.0.2] 2020-04-16
 
 ### Added

@@ -5,9 +5,6 @@ import { ServerResponse } from "http"
 import { config } from "./config"
 import { parseForm } from "./transportForm"
 const formCreated = new EventEmitter<string>()
-function isString(x: any): x is string {
-  return typeof x === "string"
-}
 
 const urlAction = (url: string) => {
   const hit = Uri.parse(url)
@@ -47,7 +44,7 @@ export const getServer = () => {
       }
     }
   })
-  server = proxy.listen(9000)
+  server = proxy.listen(port)
   return server
 }
 

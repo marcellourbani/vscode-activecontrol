@@ -52,6 +52,18 @@
         "activecontrol.user": {
           "title": "Urer ID",
           "type": "string"
+        },
+        "activecontrol.transportfilters": {
+          "title": "Transport filters",
+          "type": "array",
+          "description": "If set, transports not matching any of these patterns will be ignored by activecontrol",
+          "items": {
+            "type": "string",
+            "title": "Regular expression matching the relevant transports",
+            "examples": [
+              "DEVK.*"
+            ]
+          }
         }
       }
     }
@@ -88,7 +100,7 @@
     "fast-xml-parser": "^3.16.0",
     "fp-ts": "^2.5.3",
     "got": "^10.7.0",
-    "http-proxy": "^1.18.0",
+    "http-proxy": "^1.18.1",
     "open": "^7.0.3"
   }
 }
