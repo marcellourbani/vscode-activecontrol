@@ -2,7 +2,7 @@
   "name": "activecontrol",
   "displayName": "ActiveControl",
   "description": "ActiveControl integration for visual studio code",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "license": "MIT",
   "publisher": "murbani",
   "engines": {
