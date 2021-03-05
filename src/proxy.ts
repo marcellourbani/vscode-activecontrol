@@ -49,4 +49,4 @@ export const getServer = () => {
 }
 
 export const onFormCreated = formCreated.event
-export const close = () => new Promise(r => server && server.close(r))
+export const close = () => new Promise((r: any) => server && server.close(r))

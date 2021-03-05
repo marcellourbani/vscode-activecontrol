@@ -122,8 +122,9 @@ export async function createFormIfMissing(
 }
 
 export const parseForm = (xml: string) => {
-  const raw = parse(xml)?.["asx:abap"]?.["asx:values"]?.TRANSPORT
-  const { TRKORR, BTI_ERROR_MSG, HASFORM } = raw
+  const raw = parse(xml)
+  const root = raw?.TRANSPORT || raw?.["asx:abap"]?.["asx:values"]?.TRANSPORT
+  const { TRKORR, BTI_ERROR_MSG, HASFORM } = root
   const {
     BTIEM_MSGTYP,
     BTIEM_TITLE,
