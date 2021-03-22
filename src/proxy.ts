@@ -1,9 +1,10 @@
 import * as Server from "http-proxy"
-import { parse } from "fast-xml-parser"
-import { Uri, EventEmitter, workspace } from "vscode"
+import { Uri, EventEmitter } from "vscode"
 import { ServerResponse } from "http"
 import { config } from "./config"
 import { parseForm } from "./transportForm"
+import { unzipSync, inflateSync, brotliDecompressSync } from "zlib"
+import { Readable } from "stream"
 const formCreated = new EventEmitter<string>()
 
 const urlAction = (url: string) => {
@@ -14,14 +15,29 @@ const urlAction = (url: string) => {
   return hit && hit[1]
 }
 
-const responseContents = (res: ServerResponse) =>
+const responseContents = (res: ServerResponse, ce: string) =>
   new Promise<string>(resolve => {
     const chunks: any[] = []
-    res.on("pipe", rs =>
+    const resolver = (rs: Readable) =>
       rs
         .on("data", chunk => chunks.push(chunk))
-        .on("close", () => resolve(Buffer.from(chunks.join()).toString()))
-    )
+        .on("close", () => {
+          const raw = Buffer.concat(chunks)
+          switch (ce) {
+            case "gzip":
+              resolve(unzipSync(raw).toString())
+              break;
+            case "br":
+              resolve(brotliDecompressSync(raw).toString())
+              break;
+            case "deflate":
+              resolve(inflateSync(raw).toString())
+              break;
+            default:
+              resolve(raw.toString())
+          }
+        })
+    res.on("pipe", resolver)
   })
 
 let server: Server | undefined
@@ -36,7 +52,7 @@ export const getServer = () => {
     if (res && req.method === "POST" && req.url) {
       const action = urlAction(req.url)
       if (action === "SAVEREQUESTDETAIL") {
-        const body = await responseContents(res)
+        const body = await responseContents(res, preq.headers["content-encoding"] || "")
         const result = parseForm(body)
         const mt = result?.BTI_ERROR_MSG.BTIEM_MSGTYP
         if (result?.TRKORR && mt !== "E" && mt !== "W")

@@ -6,7 +6,6 @@
     {
       "type": "npm",
       "script": "watch",
-      "label": "npm:watch",
       "problemMatcher": [
         "$ts-webpack-watch",
         "$ts-checker-eslint-webpack-watch"

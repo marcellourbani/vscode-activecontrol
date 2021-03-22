@@ -20,7 +20,8 @@
     "Other"
   ],
   "activationEvents": [
-    "onFileSystem:adt"
+    "onFileSystem:adt",
+    "onCommand:activecontrol.createform"
   ],
   "main": "./dist/extension.js",
   "extensionDependencies": [
