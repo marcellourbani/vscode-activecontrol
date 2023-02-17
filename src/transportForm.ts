@@ -5,7 +5,10 @@ import * as opn from "open"
 import got from "got"
 import { config } from "./config"
 import { PasswordVault } from "./externalmodules"
-import { parse } from "fast-xml-parser"
+import { XMLParser, X2jOptionsOptional, strnumOptions } from "fast-xml-parser"
+
+const parse = (xml: string, options: X2jOptionsOptional = {}) =>
+  new XMLParser(options).parse(xml)
 
 async function createTF(transport: string, extToken?: CancellationToken) {
   const server = getServer()
@@ -99,8 +102,10 @@ export async function createFormCmd() {
 }
 
 function transportNeedsForm(transport: string, filters: RegExp[]) {
-  return filters.length === 0 || !!filters.find(f => transport.toUpperCase().match(f))
-
+  return (
+    filters.length === 0 ||
+    !!filters.find(f => transport.toUpperCase().match(f))
+  )
 }
 
 export async function createFormIfMissing(
