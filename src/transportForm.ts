@@ -57,7 +57,7 @@ async function getPassword(user: string) {
   let password = passwords.get(user)
   let isNew = false
   if (!password) {
-    const vault = new PasswordVault()
+    const vault = PasswordVault.get()
     password = (await vault.getPassword(service, user)) || ""
     if (!password) {
       password = await askPass(user)
@@ -70,7 +70,7 @@ async function getPassword(user: string) {
 
 const storepass = async (user: string, password: string, isNew: boolean) => {
   passwords.set(user, password)
-  const vault = new PasswordVault()
+  const vault = PasswordVault.get()
   await vault.setPassword(service, user, password)
 }
 
