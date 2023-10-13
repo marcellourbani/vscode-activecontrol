@@ -13,7 +13,7 @@ const parse = (xml: string, options: X2jOptionsOptional = {}) =>
 async function createTF(transport: string, extToken?: CancellationToken) {
   const server = getServer()
   if (!server) return true
-  const { port } = config()
+  const { port, systemId } = config()
 
   return window.withProgress(
     {
@@ -36,9 +36,8 @@ async function createTF(transport: string, extToken?: CancellationToken) {
           }
           if (extToken) extToken.onCancellationRequested(onCancel)
           if (intToken) intToken.onCancellationRequested(onCancel)
-          await opn(
-            `http://localhost:${port}/sap/bc/bsp/bti/te_bsp_new/main.html#transportform/create/trkorr=${transport}`
-          )
+          if (systemId) opn(`http://localhost:${port}/dashboard/#/${systemId}/transportform/?hash=/type/EXISTING_REQUEST/request/${transport}`)
+          else opn(`http://localhost:${port}/sap/bc/bsp/bti/te_bsp_new/main.html#transportform/create/trkorr=${transport}`)
         }
       })
   )

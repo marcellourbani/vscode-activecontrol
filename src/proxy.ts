@@ -4,7 +4,8 @@ import { ServerResponse } from "http"
 import { config } from "./config"
 import { parseForm } from "./transportForm"
 import { unzipSync, inflateSync, brotliDecompressSync } from "zlib"
-import { Readable } from "stream"
+import { Readable, Stream, Writable } from "stream"
+import { IncomingMessage } from "http"
 const formCreated = new EventEmitter<string>()
 
 const urlAction = (url: string) => {
@@ -15,7 +16,7 @@ const urlAction = (url: string) => {
   return hit && hit[1]
 }
 
-const responseContents = (res: ServerResponse, ce: string) =>
+const responseContents = (res: Stream, ce: string) =>
   new Promise<string>(resolve => {
     const chunks: any[] = []
     const resolver = (rs: Readable) =>
@@ -42,13 +43,14 @@ const responseContents = (res: ServerResponse, ce: string) =>
 
 let server: Server | undefined
 
-export const getServer = () => {
-  if (server) return server
-
-  const { url, port } = config()
-
-  const proxy = Server.createProxyServer({ target: url })
-  proxy.on("proxyRes", async (preq, req, res) => {
+const formWasCreated = async (preq: IncomingMessage, req: IncomingMessage, res: ServerResponse, newApi: boolean) => {
+  if (newApi) {
+    if (res && req.method === "POST" && req.url?.match(/\/api\/forms[^/]*$/)) {
+      const body = await responseContents(req, preq.headers["content-encoding"] || "")
+      const parsed = JSON.parse(body)
+      return parsed?.transportForm?.requestId
+    }
+  } else {
     if (res && req.method === "POST" && req.url) {
       const action = urlAction(req.url)
       if (action === "SAVEREQUESTDETAIL") {
@@ -56,8 +58,25 @@ export const getServer = () => {
         const result = parseForm(body)
         const mt = result?.BTI_ERROR_MSG.BTIEM_MSGTYP
         if (result?.TRKORR && mt !== "E" && mt !== "W")
-          formCreated.fire(result.TRKORR)
+          return result.TRKORR
       }
+    }
+  }
+
+}
+
+export const getServer = () => {
+  if (server) return server
+
+  const { url, port, systemId } = config()
+
+  const proxy = Server.createProxyServer({ target: url, changeOrigin: true })
+  proxy.on("proxyRes", async (preq, req, res) => {
+    const trnumber = await formWasCreated(preq, req, res, !!systemId)
+    try {
+      if (trnumber) formCreated.fire(trnumber)
+    } catch (error) {
+      // TODO: improve error handling
     }
   })
   server = proxy.listen(port)
