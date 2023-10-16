@@ -31,6 +31,10 @@
       {
         "command": "activecontrol.createform",
         "title": "Create Transport Form"
+      },
+      {
+        "command": "activecontrol.formExists",
+        "title": "Check if transport has a form"
       }
     ],
     "configuration": {

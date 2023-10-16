@@ -2,10 +2,11 @@ import { getServer, onFormCreated } from "./proxy"
 import { window, ProgressLocation, CancellationToken } from "vscode"
 import { none, some, isNone } from "fp-ts/lib/Option"
 import * as opn from "open"
-import got from "got"
+import got, { HTTPError } from "got"
 import { config } from "./config"
 import { PasswordVault } from "./externalmodules"
-import { XMLParser, X2jOptionsOptional, strnumOptions } from "fast-xml-parser"
+import { XMLParser, X2jOptionsOptional } from "fast-xml-parser"
+import { isString } from "fp-ts/lib/string"
 
 const parse = (xml: string, options: X2jOptionsOptional = {}) =>
   new XMLParser(options).parse(xml)
@@ -36,8 +37,10 @@ async function createTF(transport: string, extToken?: CancellationToken) {
           }
           if (extToken) extToken.onCancellationRequested(onCancel)
           if (intToken) intToken.onCancellationRequested(onCancel)
-          if (systemId) opn(`http://localhost:${port}/dashboard/#/${systemId}/transportform/?hash=/type/EXISTING_REQUEST/request/${transport}`)
-          else opn(`http://localhost:${port}/sap/bc/bsp/bti/te_bsp_new/main.html#transportform/create/trkorr=${transport}`)
+          const path = systemId
+            ? `/dashboard/#/${systemId}/transportform/?hash=/type/EXISTING_REQUEST/request/${transport}`
+            : `/sap/bc/bsp/bti/te_bsp_new/main.html#transportform/create/trkorr=${transport}`
+          opn(`http://localhost:${port}${path}`)
         }
       })
   )
@@ -73,23 +76,70 @@ const storepass = async (user: string, password: string, isNew: boolean) => {
   await vault.setPassword(service, user, password)
 }
 
+let lastToken: string | undefined
+
+async function loginIfNeeded(
+  url: string,
+  username: string,
+  password: string,
+  system: string
+) {
+  if (lastToken) return lastToken
+  const json = { system, username, password, pwIsNotEncoded: true }
+  const response = await got.post(`${url}/api/login`, { json }).json()
+  const token = (response as any).access_token
+  if (isString(token)) {
+    lastToken = token
+    setTimeout(() => (lastToken = ""), 3600000) // TODO properly expire token
+    return token
+  }
+  throw new Error("Login failed")
+}
+
+const checkTFExist = async (url: string, transport: string, token: string) => {
+  try {
+    const opts = { headers: { Authorization: `Bearer ${token}` } }
+    const formd = await got(
+      `${url}/api/newFormDefaults/${transport}`,
+      opts
+    ).json()
+    // TODO type check ?
+    return false
+  } catch (error) {
+    if (
+      error instanceof HTTPError &&
+      error.response.statusCode === 422 &&
+      isString(error.response.body)
+    ) {
+      const body = JSON.parse(error.response.body)
+      if (body?.exceptionId === "TransportFormExists") return true
+    }
+    throw error
+  }
+}
+
 const checkTransportForm = async (
   transport: string,
   username: string,
   password: string
 ) => {
-  const { url } = config()
-  const response = await got(
-    `${url}/bti/te_web_services?action=GETREQUESTDETAIL&TRKORR=${transport}`,
-    { username, password }
-  )
-  const form = parseForm(response.body)
+  const { url, systemId } = config()
+  if (systemId) {
+    const token = await loginIfNeeded(url, username, password, systemId)
+    return checkTFExist(url, transport, token)
+  } else {
+    const response = await got(
+      `${url}/bti/te_web_services?action=GETREQUESTDETAIL&TRKORR=${transport}`,
+      { username, password }
+    )
+    const form = parseForm(response.body)
 
-  return form?.TRKORR === transport && form.HASFORM
+    return form?.TRKORR === transport && form.HASFORM
+  }
 }
 
-export async function createFormCmd() {
-  const transport = await window.showInputBox({
+const trinput = () =>
+  window.showInputBox({
     prompt: "Enter transport number",
     ignoreFocusOut: true,
     validateInput: v => {
@@ -97,6 +147,9 @@ export async function createFormCmd() {
         return "Invalid transport number"
     }
   })
+
+export async function createFormCmd() {
+  const transport = await trinput()
   if (transport) return createTF(transport.toUpperCase())
 }
 
@@ -104,6 +157,29 @@ function transportNeedsForm(transport: string, filters: RegExp[]) {
   return (
     filters.length === 0 ||
     !!filters.find(f => transport.toUpperCase().match(f))
+  )
+}
+
+const checkFormWithPw = async (user: string, transport: string) => {
+  const pasopt = user && (await getPassword(user))
+  if (!pasopt || isNone(pasopt)) return true
+  const { password, isNew } = pasopt.value
+  const hasTf = await checkTransportForm(transport, user, password)
+  await storepass(user, password, isNew)
+  if (hasTf) return true
+}
+
+export const formExists = async () => {
+  const transport = await trinput()
+  if (!transport) return
+  const { user, filters } = config()
+  if (!transportNeedsForm(transport, filters)) {
+    window.showInformationMessage(`Transport ${transport} doesn't need a form`)
+    return
+  }
+  const hasTf = await checkFormWithPw(user, transport)
+  window.showInformationMessage(
+    `Transport ${transport} ${hasTf ? "has" : "doesn't have"} a form`
   )
 }
 
@@ -116,11 +192,7 @@ export async function createFormIfMissing(
 ) {
   const { user, filters } = config()
   if (!transportNeedsForm(transport, filters)) return true
-  const pasopt = user && (await getPassword(user))
-  if (!pasopt || isNone(pasopt)) return true
-  const { password, isNew } = pasopt.value
-  const hasTf = await checkTransportForm(transport, user, password)
-  await storepass(user, password, isNew)
+  const hasTf = await checkFormWithPw(user, transport)
   if (hasTf) return true
   return createTF(transport, token)
 }
