@@ -1,7 +1,8 @@
 import { ExtensionContext, extensions, commands } from "vscode"
 import { close } from "./proxy"
 import { AbapFsApi } from "./api"
-import { createFormCmd, createFormIfMissing } from "./transportForm"
+import { createFormCmd, createFormIfMissing, formExists } from "./transportForm"
+import { PasswordVault } from "./externalmodules"
 
 export async function activate(context: ExtensionContext) {
   const ext = extensions.getExtension<AbapFsApi>(
@@ -9,13 +10,16 @@ export async function activate(context: ExtensionContext) {
   )
   if (!ext) return
   if (!ext.isActive) await ext.activate()
+  PasswordVault.get(context)
   ext.exports.registerTransportValidator(createFormIfMissing)
   context.subscriptions.push(
     commands.registerCommand("activecontrol.createform", createFormCmd)
   )
+  context.subscriptions.push(
+    commands.registerCommand("activecontrol.formExists", formExists)
+  )
 }
 
-// this method is called when your extension is deactivated
 export function deactivate() {
   return close()
 }

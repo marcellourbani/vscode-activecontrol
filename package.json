@@ -6,7 +6,7 @@
   "license": "MIT",
   "publisher": "murbani",
   "engines": {
-    "vscode": "^1.44.0"
+    "vscode": "^1.75.0"
   },
   "author": {
     "email": "marcello.urbani@gmail.com",
@@ -20,8 +20,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onFileSystem:adt",
-    "onCommand:activecontrol.createform"
+    "onFileSystem:adt"
   ],
   "main": "./dist/extension.js",
   "extensionDependencies": [
@@ -32,6 +31,10 @@
       {
         "command": "activecontrol.createform",
         "title": "Create Transport Form"
+      },
+      {
+        "command": "activecontrol.formExists",
+        "title": "Check if transport has a form"
       }
     ],
     "configuration": {
@@ -51,8 +54,13 @@
           "maximum": 65535
         },
         "activecontrol.user": {
-          "title": "Urer ID",
+          "title": "User ID",
           "type": "string"
+        },
+        "activecontrol.systemId": {
+          "title": "System ID - for Activecontrol 9.0+",
+          "type": "string",
+          "description": "AC system ID as seen in system dropdown. Setting this will cause the new AC 9.0+ web UI to be used"
         },
         "activecontrol.transportfilters": {
           "title": "Transport filters",
