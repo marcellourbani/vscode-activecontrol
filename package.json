@@ -30,13 +30,23 @@
     "commands": [
       {
         "command": "activecontrol.createform",
-        "title": "Create Transport Form"
+        "title": "Create Transport Form",
+        "icon": "$(new-file)"
       },
       {
         "command": "activecontrol.formExists",
         "title": "Check if transport has a form"
       }
     ],
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "activecontrol.createform",
+          "group": "inline@9",
+          "when": "view == abapfs.transports"
+        }
+      ]
+    },
     "configuration": {
       "title": "ActiveControl configuration",
       "properties": {

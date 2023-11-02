@@ -241,8 +241,12 @@ const getStoredPassword = (user: string) =>
     isSome(pasopt) ? pasopt.value.password : undefined
   ) //TODO error handling
 
-export async function createFormCmd() {
-  const transport = await trinput()
+interface TransportParam {
+  task?: { "tm:number": string }
+}
+
+export async function createFormCmd(tr?: TransportParam) {
+  const transport = tr?.task?.["tm:number"] || (await trinput())
   if (!transport) return
   const { user } = config()
 
