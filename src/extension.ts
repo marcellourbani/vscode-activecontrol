@@ -3,6 +3,7 @@ import { close } from "./proxy"
 import { AbapFsApi } from "./api"
 import { createFormCmd, createFormIfMissing, formExists } from "./transportForm"
 import { PasswordVault } from "./externalmodules"
+import { connectWS } from "./aclistener"
 
 export async function activate(context: ExtensionContext) {
   const ext = extensions.getExtension<AbapFsApi>(
@@ -18,6 +19,7 @@ export async function activate(context: ExtensionContext) {
   context.subscriptions.push(
     commands.registerCommand("activecontrol.formExists", formExists)
   )
+  connectWS()
 }
 
 export function deactivate() {

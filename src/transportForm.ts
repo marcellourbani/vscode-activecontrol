@@ -189,6 +189,24 @@ const storepass = async (user: string, password: string, isNew: boolean) => {
   await vault.setPassword(service, user, password)
 }
 
+const getAndSavePassword = async <T>(cb: (user: string, pwd: string) => T) => {
+  const { user } = config()
+  const pasopt = user && (await getPassword(user))
+  if (!pasopt || isNone(pasopt)) return
+  const { password, isNew } = pasopt.value
+  const result = await cb(user, password)
+  await storepass(user, password, isNew)
+  return result
+}
+
+export const getLoginToken = async () => {
+  const { url, systemId } = config()
+  const token = await getAndSavePassword((user, pass) =>
+    loginIfNeeded(url, user, pass, systemId)
+  )
+  return token
+}
+
 const checkTransportForm = async (
   transport: string,
   username: string,
@@ -227,12 +245,10 @@ function transportNeedsForm(transport: string, filters: RegExp[]) {
   )
 }
 
-const checkFormWithPw = async (user: string, transport: string) => {
-  const pasopt = user && (await getPassword(user))
-  if (!pasopt || isNone(pasopt)) return true
-  const { password, isNew } = pasopt.value
-  const hasTf = await checkTransportForm(transport, user, password)
-  await storepass(user, password, isNew)
+const checkFormWithPw = async (transport: string) => {
+  const hasTf = await getAndSavePassword((user: string, password: string) =>
+    checkTransportForm(transport, user, password)
+  )
   if (hasTf) return true
 }
 
@@ -250,7 +266,7 @@ export async function createFormCmd(tr?: TransportParam) {
   if (!transport) return
   const { user } = config()
 
-  const hasTf = await checkFormWithPw(user, transport)
+  const hasTf = await checkFormWithPw(transport)
   if (hasTf)
     window.showInformationMessage(`Transport ${transport} already has a form`)
   else {
@@ -268,7 +284,7 @@ export const formExists = async () => {
     window.showInformationMessage(`Transport ${transport} doesn't need a form`)
     return
   }
-  const hasTf = await checkFormWithPw(user, transport)
+  const hasTf = await checkFormWithPw(transport)
   window.showInformationMessage(
     `Transport ${transport} ${hasTf ? "has" : "doesn't have"} a form`
   )
@@ -283,7 +299,7 @@ export async function createFormIfMissing(
 ) {
   const { user, filters } = config()
   if (!transportNeedsForm(transport, filters)) return true
-  const hasTf = await checkFormWithPw(user, transport)
+  const hasTf = await checkFormWithPw(transport)
   if (hasTf) return true
   const password = await getStoredPassword(user)
   if (!password) return false

@@ -104,6 +104,7 @@
     "@types/mocha": "^10.0.1",
     "@types/node": "^18.13.0",
     "@types/vscode": "^1.44.1",
+    "@types/ws": "^8.5.9",
     "@typescript-eslint/eslint-plugin": "^5.52.0",
     "@typescript-eslint/parser": "^5.52.0",
     "eslint": "^8.34.0",
@@ -117,9 +118,11 @@
   },
   "dependencies": {
     "fast-xml-parser": "^4.1.2",
-    "fp-ts": "^2.13.1",
+    "fp-ts": "^2.16.1",
     "got": "^12.5.3",
     "http-proxy": "^1.18.1",
-    "open": "^8.4.1"
+    "io-ts": "^2.2.20",
+    "open": "^8.4.1",
+    "ws": "^8.14.2"
   }
 }
