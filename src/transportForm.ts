@@ -7,7 +7,8 @@ import { Configuration, config } from "./config"
 import { PasswordVault } from "./externalmodules"
 import { XMLParser, X2jOptionsOptional } from "fast-xml-parser"
 import { isString } from "fp-ts/lib/string"
-
+import * as t from "io-ts"
+import { isRight } from "fp-ts/lib/Either"
 const parse = (xml: string, options: X2jOptionsOptional = {}) =>
   new XMLParser(options).parse(xml)
 
@@ -31,30 +32,27 @@ async function loginIfNeeded(
   throw new Error("Login failed")
 }
 
+const formDetails = t.type({
+  transportForm: t.type({
+    requestDetails: t.type({ hasTransportForm: t.boolean })
+  })
+})
+
+const hasform = (response: unknown) => {
+  const res = formDetails.decode(response)
+  if (isRight(res))
+    return res.right.transportForm.requestDetails.hasTransportForm
+  return false
+}
+
 const checkTFExistInt = async (
   url: string,
   transport: string,
   token: string
 ) => {
-  try {
-    const opts = { headers: { Authorization: `Bearer ${token}` } }
-    const formd = await got(
-      `${url}/api/newFormDefaults/${transport}`,
-      opts
-    ).json()
-    // TODO type check ?
-    return false
-  } catch (error) {
-    if (
-      error instanceof HTTPError &&
-      error.response.statusCode === 422 &&
-      isString(error.response.body)
-    ) {
-      const body = JSON.parse(error.response.body)
-      if (body?.exceptionId === "TransportFormExists") return true
-    }
-    throw error
-  }
+  const opts = { headers: { Authorization: `Bearer ${token}` } }
+  const formd = await got(`${url}/api/forms/${transport}`, opts).json()
+  return hasform(formd)
 }
 
 const checkTFExist = async (
