@@ -72,6 +72,11 @@
           "type": "string",
           "description": "AC system ID as seen in system dropdown. Setting this will cause the new AC 9.0+ web UI to be used"
         },
+        "activecontrol.listenForCommands": {
+          "title": "Listen for commands",
+          "type": "boolean",
+          "description": "Listen for commands from the AC web UI"
+        },
         "activecontrol.transportfilters": {
           "title": "Transport filters",
           "type": "array",

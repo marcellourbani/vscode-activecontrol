@@ -34,6 +34,8 @@ const diffMessage = t.type({
   message: conflictDetails
 })
 
+type MergeMessage = t.TypeOf<typeof diffMessage>
+
 const message = t.union([loginMessage, diffMessage])
 
 const launchDiff = async (details: ConflictDetails) => {
@@ -47,30 +49,54 @@ const launchDiff = async (details: ConflictDetails) => {
   return result
 }
 
-export const connectWS = async () => {
-  const conf = config()
-  if (!conf.systemId) return // old AC
-  const token = await getLoginToken()
-  const cookie = `wp-signed-on=${
-    conf.systemId
-  }; wp-access-token=${encodeURIComponent(token || "")}`
-  const ws = new WebSocket(`${conf.url.replace(/^http/, "ws")}/ws`, {
-    headers: { cookie }
-  })
-  ws.on("open", (event: unknown) => {
-    console.log(`open: ${event}`)
-  })
-  ws.on("message", (event) => {
-    const msg = message.decode(JSON.parse(event.toString()))
-    if (isRight(msg)) {
-      if (msg.right.type === "authenticated")
-        ws.send(
-          JSON.stringify({
-            type: "addListener",
-            message: { messageId: "mergeEditor" }
-          })
-        )
-      else launchDiff(msg.right.message)
-    } else console.log(`${msg.left}`)
-  })
+const registerListenerMsg = (messageId: string) =>
+  JSON.stringify({ type: "addListener", message: { messageId } })
+
+class WsHandler {
+  private static instance: WsHandler
+  private ws: WebSocket | undefined
+  private wsPromise: Promise<WebSocket> | undefined
+  private connectionInterval: NodeJS.Timer | undefined
+  public static get() {
+    if (!WsHandler.instance) WsHandler.instance = new WsHandler()
+    return WsHandler.instance
+  }
+  private constructor() {
+    this.pollAc()
+  }
+  private pollAc() {
+    this.wsPromise = undefined
+    this.ws = undefined
+    this.connectionInterval = setInterval(() => this.connect(), 5000)
+  }
+  async connect(): Promise<void> {
+    if (this.ws || this.wsPromise) return
+    const conf = config()
+    if (!conf.systemId || !conf.listenForCommands) return
+    this.wsPromise = new Promise(async (resolve, reject) => {
+      const token = encodeURIComponent((await getLoginToken()) || "")
+      const cookie = `wp-signed-on=${conf.systemId}; wp-access-token=${token}`
+      const opts = { headers: { cookie } }
+      const ws = new WebSocket(`${conf.url.replace(/^http/, "ws")}/ws`, opts)
+      ws.on("close", () => this.pollAc())
+      ws.on("message", (event) => {
+        const msg = message.decode(JSON.parse(event.toString()))
+        if (isRight(msg)) {
+          if (msg.right.type === "authenticated") resolve(ws)
+          else this.handleMessage(msg.right)
+        }
+      })
+    })
+    this.ws = await this.wsPromise
+    clearInterval(this.connectionInterval)
+    this.setListeners()
+  }
+  setListeners() {
+    this.ws?.send(registerListenerMsg("mergeEditor"))
+  }
+  handleMessage(message: MergeMessage) {
+    launchDiff(message.message)
+  }
 }
+
+export const connectWS = () => WsHandler.get()
