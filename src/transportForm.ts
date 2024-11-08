@@ -84,10 +84,10 @@ const createTfOld = (
   extToken?: CancellationToken,
   intToken?: CancellationToken
 ) =>
-  new Promise<boolean>(async (resolve) => {
+  new Promise<boolean>(async resolve => {
     if (extToken?.isCancellationRequested) resolve(false)
     else {
-      const sub = onFormCreated((form) => {
+      const sub = onFormCreated(form => {
         if (form === transport) resolve(true)
         else resolve(false)
         sub.dispose()
@@ -129,7 +129,8 @@ const createTfNew = async (
         reject(error)
       }
     }, 1000)
-    const path = `/dashboard/#/${conf.systemId}/transportform/?hash=/type/EXISTING_REQUEST/request/${transport}`
+    const hash = conf.useHash ? "?hash=" : ""
+    const path = `/dashboard/#/${conf.systemId}/transportform/${hash}/type/EXISTING_REQUEST/request/${transport}`
     opn(`${conf.url}${path}`)
   })
 
@@ -229,17 +230,17 @@ const trinput = () =>
     .showInputBox({
       prompt: "Enter transport number",
       ignoreFocusOut: true,
-      validateInput: (v) => {
+      validateInput: v => {
         if (!v.match(/^[a-z]\w\wK\w\w\w\w\w\w$/i))
           return "Invalid transport number"
       }
     })
-    .then((x) => x?.toUpperCase())
+    .then(x => x?.toUpperCase())
 
 function transportNeedsForm(transport: string, filters: RegExp[]) {
   return (
     filters.length === 0 ||
-    !!filters.find((f) => transport.toUpperCase().match(f))
+    !!filters.find(f => transport.toUpperCase().match(f))
   )
 }
 
@@ -251,7 +252,7 @@ const checkFormWithPw = async (transport: string) => {
 }
 
 const getStoredPassword = (user: string) =>
-  getPassword(user).then((pasopt) =>
+  getPassword(user).then(pasopt =>
     isSome(pasopt) ? pasopt.value.password : undefined
   ) //TODO error handling
 

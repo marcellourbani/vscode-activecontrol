@@ -77,6 +77,10 @@
           "type": "boolean",
           "description": "Listen for commands from the AC web UI"
         },
+        "activecontrol.useHash": {
+          "title": "Use hash in transport URL (for AC 9.20 and earlier)",
+          "type": "boolean"
+        },
         "activecontrol.transportfilters": {
           "title": "Transport filters",
           "type": "array",

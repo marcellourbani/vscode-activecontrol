@@ -7,6 +7,7 @@ interface RawConfiguration {
   systemId: string
   transportfilters: string[]
   listenForCommands: boolean
+  useHash: boolean
 }
 export interface Configuration {
   url: string
@@ -15,6 +16,7 @@ export interface Configuration {
   filters: RegExp[]
   systemId: string
   listenForCommands: boolean
+  useHash: boolean
 }
 const toRegExp = (s: string) => {
   try {
@@ -35,7 +37,8 @@ export function config(): Configuration {
     user = "",
     transportfilters = [],
     systemId = "",
-    listenForCommands = false
+    listenForCommands = false,
+    useHash = false
   } = config as Partial<RawConfiguration>
   const port = parsePort(portstr)
   const filters = transportfilters.map(toRegExp).filter((r): r is RegExp => !!r)
@@ -43,5 +46,13 @@ export function config(): Configuration {
     window.showWarningMessage(
       "Invalid regular expressions in transport patterns - ActiveControl will ignore bad ones"
     )
-  return { url, port, user, filters, systemId, listenForCommands }
+  return {
+    url,
+    port,
+    user,
+    filters,
+    systemId,
+    listenForCommands,
+    useHash
+  }
 }
